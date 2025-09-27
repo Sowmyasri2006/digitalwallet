@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: walletdb
+      MYSQL_USER: walletuser
+      MYSQL_PASSWORD: walletpass
+    ports:
+      - "3307:3306"  # host 3307 mapped to container 3306
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./sql.sql:/docker-entrypoint-initdb.d/sql.sql
+
+  backend:
+    build: ./ewallet
+    container_name: wallet_backend
+    restart: always
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/walletdb
+      SPRING_DATASOURCE_USERNAME: walletuser
+      SPRING_DATASOURCE_PASSWORD: walletpass
+      SERVER_PORT: 9091
+    depends_on:
+      - mysql
+    ports:
+      - "9091:9091"  # exposed port 9091, avoids conflict with Jenkins 8080
+
+  frontend:
+    build: ./ewallet-frontend
+    container_name: wallet_frontend
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  db_data:
